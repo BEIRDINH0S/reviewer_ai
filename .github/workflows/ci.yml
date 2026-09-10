@@ -1,0 +1,47 @@
+name: CI
+
+# C'est ce workflow qui conditionne l'entrée dans `main` : une pull request dont il échoue ne
+# peut pas être fusionnée. C'est ce qui rend une branche `develop` inutile — la garantie que
+# `main` reste en état de marche est automatique et vérifiée, plutôt que confiée à la
+# discipline de chacun. Voir CONTRIBUTING.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Compilation et tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer le JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Compiler et lancer les tests
+        run: mvn --batch-mode verify
+
+      - name: Vérifier que la Javadoc se génère sans erreur
+        run: mvn --batch-mode javadoc:javadoc
+
+      # La règle vaut d'être vérifiée par la machine plutôt que rappelée en revue : le travail
+      # restant appartient aux issues, pas au code.
+      - name: Vérifier l'absence de TODO dans le code
+        run: |
+          if grep -rn "TODO\|FIXME\|XXX" src/main/java src/test/java; then
+            echo "::error::Un TODO a été trouvé. Le travail restant s'écrit dans une issue (voir CONTRIBUTING.md)."
+            exit 1
+          fi
+
+      - name: Publier les rapports de test en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-surefire
+          path: target/surefire-reports/

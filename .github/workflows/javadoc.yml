@@ -1,0 +1,53 @@
+# Publie la Javadoc sur GitHub Pages à chaque push sur main.
+#
+# À faire une fois dans les réglages du dépôt : Settings > Pages > Source = GitHub Actions.
+# La documentation sera ensuite visible sur https://<compte>.github.io/<depot>/
+
+name: Javadoc
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule publication à la fois ; les pushs suivants attendent plutôt que d'annuler.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer le JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Générer la Javadoc
+        run: mvn --batch-mode javadoc:javadoc
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/reports/apidocs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,203 @@
+/* Feuille de style volontairement minimale : le projet est jugé sur la qualité du code Java,
+   pas sur l'apparence de la page. Elle doit rester lisible, rien de plus. */
+
+:root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1c1f23;
+    --muted: #6b7280;
+    --border: #e2e5ea;
+    --accent: #2563eb;
+    --high: #dc2626;
+    --medium: #d97706;
+    --low: #6b7280;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 2rem 1rem;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+header, main {
+    max-width: 60rem;
+    margin: 0 auto;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+}
+
+.subtitle {
+    margin: 0.25rem 0 1.5rem;
+    color: var(--muted);
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.card.error {
+    border-color: var(--high);
+}
+
+label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+label.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text);
+}
+
+input[type="text"] {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.row {
+    display: flex;
+    gap: 1rem;
+}
+
+.row label {
+    flex: 1;
+}
+
+details {
+    margin-bottom: 1rem;
+}
+
+summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: var(--muted);
+    cursor: not-allowed;
+}
+
+progress {
+    width: 100%;
+    height: 0.5rem;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th, td {
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+th {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+td.file, td.method, td.line {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+.severity {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.severity.HIGH {
+    color: var(--high);
+}
+
+.severity.MEDIUM {
+    color: var(--medium);
+}
+
+.severity.LOW {
+    color: var(--low);
+}
+
+.explanation {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted);
+}
+
+/* --- Éléments ajoutés par la migration vers l'évaluation de projet --- */
+
+.subtitle { color: #555; margin-top: -0.5rem; }
+.hint { color: #555; font-size: 0.9rem; }
+
+.row { display: flex; gap: 0.5rem; align-items: center; }
+.row input[type="text"] { flex: 1; }
+
+#tree { max-height: 18rem; overflow-y: auto; border: 1px solid #ddd; padding: 0.5rem; }
+.tree-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.1rem 0; }
+.tree-row code { font-size: 0.85rem; }
+.kind { color: #777; font-size: 0.8rem; white-space: nowrap; }
+
+.checkbox { display: block; margin: 0.25rem 0; font-weight: normal; }
+.checkbox em { color: #777; font-size: 0.8rem; font-style: normal; }
+
+#scores { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+#scores th, #scores td { border-bottom: 1px solid #ddd; padding: 0.4rem; text-align: left; }
+#scores td:nth-child(2), #scores td:nth-child(3) { text-align: right; width: 4rem; }
+
+.criterion { border-top: 1px solid #eee; padding-top: 0.5rem; margin-top: 1rem; }
+.criterion h4 { margin-bottom: 0.2rem; font-size: 0.9rem; }
+
+.warning { color: #a60; font-size: 0.9rem; margin: 0.2rem 0; }
+.error { color: #b00; font-weight: bold; }
+
+progress { width: 100%; }

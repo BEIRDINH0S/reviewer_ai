@@ -1,0 +1,24 @@
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+
+# Sorties de l'outil
+report.md
+evaluation.tex
+evaluation.pdf
+evaluation.md
+out/
+historique/
+
+# Repos de test clonés localement
+testdata/clones/

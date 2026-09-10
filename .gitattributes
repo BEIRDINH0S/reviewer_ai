@@ -1,0 +1,28 @@
+# Normalise les fins de ligne pour que Windows, macOS et Linux travaillent sur le même dépôt.
+#
+# Sans ce fichier, Git for Windows convertit tout en CRLF à la récupération. Les scripts .sh
+# se retrouvent alors avec des retours chariot que Linux ne comprend pas, et le conteneur
+# répond « bad interpreter: /usr/bin/env bash^M ».
+
+# Par défaut : Git décide, et stocke toujours en LF dans l'historique.
+* text=auto
+
+# Ces fichiers sont lus par Linux, dans un conteneur ou en intégration continue.
+# Ils doivent rester en LF même sur une machine Windows.
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+
+# Sources et documentation : LF partout, les éditeurs modernes s'en accommodent.
+*.java        text eol=lf
+*.xml         text eol=lf
+*.md          text eol=lf
+*.html        text eol=lf
+*.properties  text eol=lf
+
+# Fichiers binaires : ne jamais y toucher.
+*.jar         binary
+*.png         binary
+*.jpg         binary
+*.pdf         binary

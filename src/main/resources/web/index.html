@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Project Reviewer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>AI Project Reviewer</h1>
+  <p class="subtitle">Évalue un projet Java et produit un rapport LaTeX.</p>
+</header>
+
+<main>
+  <section id="setup">
+    <h2>1 · Le projet</h2>
+    <label for="project">Répertoire, dépôt git ou archive .zip</label>
+    <div class="row">
+      <input type="text" id="project" placeholder="/chemin/du/projet" autocomplete="off">
+      <button type="button" id="load">Charger</button>
+    </div>
+
+    <div id="tree-panel" hidden>
+      <h3>Contenu du projet</h3>
+      <p id="tree-summary"></p>
+      <div id="tree"></div>
+    </div>
+  </section>
+
+  <section id="criteria-panel" hidden>
+    <h2>2 · Les critères</h2>
+    <p class="hint">Décochez ce que vous ne voulez pas évaluer. Les critères déterministes ne
+      font aucun appel au modèle.</p>
+    <div id="criteria"></div>
+
+    <details>
+      <summary>Réglages avancés</summary>
+      <label for="model">Modèle</label>
+      <input type="text" id="model" placeholder="qwen2.5-coder:7b" autocomplete="off">
+      <label for="exclude">Fichiers à exclure (un motif par ligne)</label>
+      <textarea id="exclude" rows="3" placeholder="**/generated/**"></textarea>
+      <label class="checkbox">
+        <input type="checkbox" id="offline"> Mode hors ligne (aucun appel au modèle)
+      </label>
+    </details>
+
+    <button type="button" id="start">Lancer l'évaluation</button>
+  </section>
+
+  <section id="progress-panel" hidden>
+    <h2>3 · Avancement</h2>
+    <p id="stage"></p>
+    <progress id="bar" value="0" max="1"></progress>
+    <p id="counter"></p>
+    <div id="warnings"></div>
+  </section>
+
+  <section id="results-panel" hidden>
+    <h2>4 · Résultat</h2>
+    <p id="overall"></p>
+    <table id="scores">
+      <thead>
+      <tr><th>Critère</th><th>Note</th><th>Max</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="details"></div>
+    <p><a id="download" href="/api/report">Télécharger le rapport</a></p>
+  </section>
+
+  <p id="error" class="error" hidden></p>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
