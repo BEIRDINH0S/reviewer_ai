@@ -158,8 +158,9 @@ Pour évaluer un projet venant de l'extérieur, passer par le conteneur : voir
 ## Travailler sur le projet
 
 Le travail restant est dans les [issues](../../issues) — il n'y a pas de `TODO` dans le code.
-Une branche par issue, partant de `main`, fusionnée quand la CI est verte. Le détail et les
-raisons de ce choix sont dans [CONTRIBUTING.md](CONTRIBUTING.md).
+Une branche par issue, partant de `main`, fusionnée quand la CI est verte. La répartition des
+tâches, le détail du fonctionnement et les raisons de ces choix sont dans
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
 mvn test              # tests unitaires

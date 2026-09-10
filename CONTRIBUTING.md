@@ -39,6 +39,35 @@ où en est le sujet.
 
 ---
 
+## Répartition des tâches
+
+Chacun tient une brique, avec ses issues. Ce n'est pas une frontière étanche : on relit le code
+des autres, et une brique bloquée se dépanne à deux.
+
+| Personne | Brique | Issues | Ordre conseillé |
+|---|---|---|---|
+| **1** (lead) | Orchestration et rapport | [#1](../../issues/1) [#2](../../issues/2) [#3](../../issues/3) [#13](../../issues/13) [#14](../../issues/14) | #14, #1, #2, #3, #13 |
+| **2** | Chargement de projet et historique | [#6](../../issues/6) [#7](../../issues/7) [#10](../../issues/10) | #7, #6, #10 |
+| **3** | Graphe d'appel et critères | [#8](../../issues/8) [#11](../../issues/11) [#17](../../issues/17) | #11, #8, #17 |
+| **4** | Contexte | [#9](../../issues/9) [#15](../../issues/15) [#16](../../issues/16) | #9, #16, #15 |
+| **5** | Modèle et validation | [#4](../../issues/4) [#5](../../issues/5) [#12](../../issues/12) | #5, #4, #12 |
+
+**Le chemin critique passe par #1, #2, #4 et #5.** Tant que ces quatre issues ne sont pas
+terminées, l'outil ne produit aucun rapport, et #13 — un livrable exigé par le sujet — reste
+bloquée. Tout le reste peut attendre.
+
+Deux dépendances à connaître avant de commencer : #9 attend #8, et #16 attend #9. La personne 4
+a donc intérêt à démarrer par #16 côté protocole pendant que #8 avance.
+
+Les issues à **priorité basse** sont des fonctionnalités que le sujet lui-même dit optionnelles.
+Le sujet précise aussi que « les fonctionnalités additionnelles ne compensent pas une
+architecture défaillante » : on n'y touche qu'une fois le reste terminé.
+
+Chacun commence par une issue de sa brique, mais **personne ne reste bloqué seul** : au bout
+d'une demi-journée sans progrès, on en parle plutôt que de s'entêter.
+
+---
+
 ## Pas de branche `develop`
 
 C'est une décision, pas un oubli. Elle mérite d'être justifiée, y compris dans le rapport.
