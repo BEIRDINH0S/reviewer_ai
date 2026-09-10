@@ -4,6 +4,8 @@ import com.reviewerai.config.EvaluationConfig;
 import com.reviewerai.config.ServerConfig;
 import com.reviewerai.controller.EvaluationController;
 import com.reviewerai.criteria.CriterionDescriptor;
+import com.reviewerai.history.AnalysisHistory;
+import com.reviewerai.history.JsonFileAnalysisHistory;
 import com.reviewerai.llm.StubLlmProvider;
 import com.reviewerai.model.ProjectSnapshot;
 import com.reviewerai.project.CompositeFileSelector;
@@ -74,12 +76,17 @@ public final class Main {
         boolean offline = CliArguments.isOffline(args);
         boolean markdown = CliArguments.wantsMarkdown(args);
 
+        // Un historique partagé : le service y consigne chaque analyse, les routes /api/history
+        // le relisent. Sur disque, il survit au redémarrage du serveur.
+        AnalysisHistory history = new JsonFileAnalysisHistory(Path.of("historique"));
+
         var server = new WebServer(
                 serverConfig,
                 reportFile,
                 availableCriteria(),
                 Main::loadProject,
-                config -> newController(config, offline, markdown));
+                config -> newController(config, offline, markdown, history),
+                history);
         server.start();
 
         System.out.println("Interface disponible sur " + serverConfig.url());
@@ -110,6 +117,21 @@ public final class Main {
         EvaluationService service = offline
                 ? EvaluationServiceFactory.create(config, StubLlmProvider.silent(), System.err::println)
                 : EvaluationServiceFactory.create(config);
+        ReportWriter writer = markdown ? new MarkdownReportWriter() : new LatexReportWriter();
+        return new EvaluationController(config, service, writer);
+    }
+
+    /**
+     * Comme {@link #newController}, mais en consignant dans un historique partagé.
+     *
+     * <p>C'est ce qui permet au serveur web de relire, via {@code /api/history}, les analyses que
+     * ce contrôleur vient d'écrire.
+     */
+    private static EvaluationController newController(EvaluationConfig config, boolean offline,
+                                                      boolean markdown, AnalysisHistory history) {
+        EvaluationService service = offline
+                ? EvaluationServiceFactory.create(config, StubLlmProvider.silent(), System.err::println, history)
+                : EvaluationServiceFactory.create(config, history);
         ReportWriter writer = markdown ? new MarkdownReportWriter() : new LatexReportWriter();
         return new EvaluationController(config, service, writer);
     }

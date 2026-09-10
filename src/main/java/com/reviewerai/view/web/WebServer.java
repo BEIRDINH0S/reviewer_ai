@@ -4,6 +4,8 @@ import com.reviewerai.config.EvaluationConfig;
 import com.reviewerai.config.ServerConfig;
 import com.reviewerai.controller.EvaluationController;
 import com.reviewerai.criteria.CriterionDescriptor;
+import com.reviewerai.history.AnalysisHistory;
+import com.reviewerai.model.EvaluationResult;
 import com.reviewerai.model.ProjectSnapshot;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -11,11 +13,13 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -39,7 +43,9 @@ import java.util.function.Function;
  *   <li>{@code POST /api/project} — charge un projet et renvoie son arborescence ;
  *   <li>{@code POST /api/evaluate} — lance une évaluation et répond immédiatement ;
  *   <li>{@code GET /api/status} — l'état courant, interrogé régulièrement ;
- *   <li>{@code GET /api/report} — le rapport, une fois l'évaluation terminée.
+ *   <li>{@code GET /api/report} — le rapport, une fois l'évaluation terminée ;
+ *   <li>{@code GET /api/history} — la liste des analyses passées ;
+ *   <li>{@code GET /api/history/{id}} — une analyse passée, en entier.
  * </ul>
  *
  * <p>L'évaluation tourne dans un fil séparé : une requête HTTP qui durerait plusieurs minutes
@@ -70,6 +76,7 @@ public final class WebServer implements AutoCloseable {
     private final Function<EvaluationConfig, EvaluationController> controllerFactory;
     private final Function<Path, ProjectSnapshot> projectPreview;
     private final List<CriterionDescriptor> criteria;
+    private final AnalysisHistory history;
     private final EvaluationWebView view = new EvaluationWebView();
     private final WebJson json = new WebJson();
     private final Path reportFile;
@@ -85,17 +92,21 @@ public final class WebServer implements AutoCloseable {
      * @param controllerFactory fabrique un contrôleur pour une configuration donnée ; injectée
      *                          plutôt que codée en dur, pour que les tests fournissent un
      *                          contrôleur factice
+     * @param history           l'historique consulté par les routes {@code /api/history} ;
+     *                          c'est le même que celui où le service consigne ses analyses
      */
     public WebServer(ServerConfig config,
                      Path reportFile,
                      List<CriterionDescriptor> criteria,
                      Function<Path, ProjectSnapshot> projectPreview,
-                     Function<EvaluationConfig, EvaluationController> controllerFactory) {
+                     Function<EvaluationConfig, EvaluationController> controllerFactory,
+                     AnalysisHistory history) {
         this.config = Objects.requireNonNull(config, "config");
         this.reportFile = Objects.requireNonNull(reportFile, "reportFile");
         this.criteria = List.copyOf(Objects.requireNonNull(criteria, "criteria"));
         this.projectPreview = Objects.requireNonNull(projectPreview, "projectPreview");
         this.controllerFactory = Objects.requireNonNull(controllerFactory, "controllerFactory");
+        this.history = Objects.requireNonNull(history, "history");
     }
 
     /** Démarre le serveur. Rend la main aussitôt, le serveur tourne en arrière-plan. */
@@ -108,6 +119,7 @@ public final class WebServer implements AutoCloseable {
         server.createContext("/api/evaluate", this::handleEvaluate);
         server.createContext("/api/status", this::handleStatus);
         server.createContext("/api/report", this::handleReport);
+        server.createContext("/api/history", this::handleHistory);
 
         // Les requêtes sont courtes : deux fils suffisent largement.
         server.setExecutor(Executors.newFixedThreadPool(2));
@@ -218,6 +230,33 @@ public final class WebServer implements AutoCloseable {
             return;
         }
         respond(exchange, 200, "text/plain; charset=utf-8", report);
+    }
+
+    /**
+     * Sert la liste de l'historique, ou une analyse précise selon le chemin.
+     *
+     * <p>L'identifiant vient du navigateur : il ne sert jamais à construire un chemin de fichier
+     * sans contrôle. {@code AnalysisHistory.find} rejette tout identifiant qui tenterait de sortir
+     * du répertoire, ce qui devient ici un 404 plutôt qu'une lecture hors du dossier. Un
+     * identifiant inconnu donne aussi 404, jamais une erreur 500.
+     */
+    private void handleHistory(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            respondJson(exchange, 405, json.toErrorJson("Méthode non autorisée"));
+            return;
+        }
+        String path = exchange.getRequestURI().getPath();
+        if (path.equals("/api/history") || path.equals("/api/history/")) {
+            respondJson(exchange, 200, json.toHistoryJson(history.list()));
+            return;
+        }
+        String id = URLDecoder.decode(path.substring("/api/history/".length()), StandardCharsets.UTF_8);
+        Optional<EvaluationResult> found = history.find(id);
+        if (found.isEmpty()) {
+            respondJson(exchange, 404, json.toErrorJson("Analyse introuvable"));
+            return;
+        }
+        respondJson(exchange, 200, json.toResultJson(found.get()));
     }
 
     // --- utilitaires HTTP ---

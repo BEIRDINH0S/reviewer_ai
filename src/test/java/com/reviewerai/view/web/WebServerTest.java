@@ -3,6 +3,9 @@ package com.reviewerai.view.web;
 import com.reviewerai.config.ServerConfig;
 import com.reviewerai.controller.EvaluationController;
 import com.reviewerai.criteria.CriterionDescriptor;
+import com.reviewerai.history.AnalysisHistory;
+import com.reviewerai.history.InMemoryAnalysisHistory;
+import com.reviewerai.model.CriterionResult;
 import com.reviewerai.model.EvaluationResult;
 import com.reviewerai.model.FileKind;
 import com.reviewerai.model.ProjectFile;
@@ -24,6 +27,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,6 +44,7 @@ class WebServerTest {
     private WebServer server;
     private HttpClient client;
     private String baseUrl;
+    private final AnalysisHistory history = new InMemoryAnalysisHistory();
 
     @TempDir
     Path tempDir;
@@ -65,7 +70,8 @@ class WebServerTest {
                 tempDir.resolve("evaluation.tex"),
                 List.of(CriterionDescriptor.deterministic("tests", "Présence de tests", "")),
                 WebServerTest::fakeProject,
-                config -> new EvaluationController(config, silentService(), new StubReportWriter()));
+                config -> new EvaluationController(config, silentService(), new StubReportWriter()),
+                history);
         server.start();
 
         baseUrl = "http://127.0.0.1:" + server.port();
@@ -168,6 +174,57 @@ class WebServerTest {
     @DisplayName("le rapport n'est pas disponible avant la fin d'une évaluation")
     void reportIsAbsentBeforeEvaluation() throws Exception {
         assertEquals(404, get("/api/report").statusCode());
+    }
+
+    @Test
+    @DisplayName("un historique vide se sert quand même, avec une liste vide")
+    void emptyHistoryIsServed() throws Exception {
+        HttpResponse<String> response = get("/api/history");
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("\"history\":[]"));
+    }
+
+    @Test
+    @DisplayName("la liste de l'historique reprend les analyses enregistrées")
+    void historyListIsServed() throws Exception {
+        history.record(sampleResult());
+
+        HttpResponse<String> response = get("/api/history");
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("demo"), "le projet évalué doit figurer dans la liste");
+    }
+
+    @Test
+    @DisplayName("une analyse de l'historique se relit en entier par son identifiant")
+    void historyEntryIsServed() throws Exception {
+        String id = history.record(sampleResult());
+
+        HttpResponse<String> response = get("/api/history/" + id);
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Architecture"), "le détail doit porter les critères");
+    }
+
+    @Test
+    @DisplayName("un identifiant inconnu renvoie 404, pas une erreur 500")
+    void unknownHistoryIdIs404() throws Exception {
+        assertEquals(404, get("/api/history/inexistant").statusCode());
+    }
+
+    @Test
+    @DisplayName("un identifiant qui tente de sortir du répertoire est refusé")
+    void historyIdEscapingIsRejected() throws Exception {
+        // « ../secret » encodé : le serveur le décode, mais l'historique le refuse -> 404.
+        assertEquals(404, get("/api/history/..%2Fsecret").statusCode());
+    }
+
+    private static EvaluationResult sampleResult() {
+        var criterion = new CriterionResult("arch", "Architecture", 8, 10, "Découpage clair.",
+                List.of(), List.of(), List.of(), List.of(), true);
+        return new EvaluationResult(PROJECT, Instant.now(), "modele-test", "config",
+                List.of(criterion), Duration.ofSeconds(2), 3, List.of());
     }
 
     private HttpResponse<String> get(String path) throws Exception {

@@ -34,6 +34,7 @@ import com.reviewerai.verify.FindingVerifier;
 import com.reviewerai.verify.KnownLocationVerifier;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -78,6 +79,16 @@ public final class EvaluationServiceFactory {
     }
 
     /**
+     * Assemblage de production écrivant dans un historique imposé.
+     *
+     * <p>Sert au serveur web, qui partage un même historique entre le service qui l'alimente et
+     * les routes qui l'affichent, au lieu de laisser chaque évaluation en créer un jetable.
+     */
+    public static EvaluationService create(EvaluationConfig config, AnalysisHistory history) {
+        return create(config, new OllamaLlmProvider(config), message -> { }, history);
+    }
+
+    /**
      * Assemblage avec un fournisseur de modèle imposé.
      *
      * <p>Sert aux tests et au mode hors ligne : passer un
@@ -92,6 +103,18 @@ public final class EvaluationServiceFactory {
     public static EvaluationService create(EvaluationConfig config,
                                            LlmProvider provider,
                                            Consumer<String> journal) {
+        return create(config, provider, journal, history(config));
+    }
+
+    /**
+     * Assemblage avec fournisseur de modèle <b>et</b> historique imposés.
+     *
+     * @param history l'historique où consigner le résultat, plutôt que celui déduit de la config
+     */
+    public static EvaluationService create(EvaluationConfig config,
+                                           LlmProvider provider,
+                                           Consumer<String> journal,
+                                           AnalysisHistory history) {
         CountingLlmProvider counting = llmProvider(config, provider, journal);
         ContextBuilder contextBuilder = new RepresentativeFileContextBuilder(config);
         CriterionResponseParser parser = new JsonCriterionResponseParser();
@@ -102,7 +125,7 @@ public final class EvaluationServiceFactory {
                 ProjectLoaderFactory.withMaxFileSize(config.maxFileSizeBytes()),
                 fileSelector(config),
                 criterionRegistry(contextBuilder, counting, parser, verifier, config),
-                history(config),
+                Objects.requireNonNull(history, "history"),
                 counting);
     }
 

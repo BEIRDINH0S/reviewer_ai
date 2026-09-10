@@ -21,6 +21,7 @@ let pollTimer = null;
 document.addEventListener("DOMContentLoaded", () => {
     el("load").addEventListener("click", loadProject);
     el("start").addEventListener("click", startEvaluation);
+    el("history-load").addEventListener("click", loadHistory);
     loadCriteria();
 });
 
@@ -285,4 +286,80 @@ function cell(text) {
     const td = document.createElement("td");
     td.textContent = text;
     return td;
+}
+
+/** Charge la liste de l'historique et l'affiche. */
+async function loadHistory() {
+    try {
+        const response = await fetch("/api/history");
+        const data = await response.json();
+        renderHistoryList(data.history || []);
+    } catch (e) {
+        showError("Impossible de charger l'historique.");
+    }
+}
+
+/**
+ * Affiche la liste des analyses passées, avec l'évolution de la note d'un même projet.
+ *
+ * La liste arrive de la plus récente à la plus ancienne : pour chaque entrée, on cherche la
+ * précédente analyse du même projet pour en déduire l'écart de note.
+ */
+function renderHistoryList(entries) {
+    const list = el("history-list");
+    list.replaceChildren();
+    el("history-detail").replaceChildren();
+
+    if (entries.length === 0) {
+        const empty = document.createElement("p");
+        empty.textContent = "Aucune analyse enregistrée pour l'instant.";
+        list.appendChild(empty);
+        return;
+    }
+
+    entries.forEach((entry, index) => {
+        const older = entries.slice(index + 1).find((e) => e.project === entry.project);
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "history-row";
+
+        let text = `${entry.project} · ${entry.overallScore.toFixed(1)}/20 · ${entry.model}`
+            + ` · ${new Date(entry.analysedAt).toLocaleString("fr-FR")}`;
+        if (older) {
+            const delta = entry.overallScore - older.overallScore;
+            const arrow = delta > 0 ? "▲" : (delta < 0 ? "▼" : "=");
+            text += ` · ${arrow} ${delta >= 0 ? "+" : ""}${delta.toFixed(1)} vs précédente`;
+        }
+        // textContent : l'identifiant et les libellés ne sont jamais interprétés comme du HTML.
+        row.textContent = text;
+        row.addEventListener("click", () => openHistoryEntry(entry.id));
+        list.appendChild(row);
+    });
+}
+
+/** Charge et affiche une analyse passée en entier. */
+async function openHistoryEntry(id) {
+    const detail = el("history-detail");
+    detail.replaceChildren();
+    try {
+        const response = await fetch(`/api/history/${encodeURIComponent(id)}`);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            const message = document.createElement("p");
+            message.className = "error";
+            message.textContent = data.error || "Analyse introuvable.";
+            detail.appendChild(message);
+            return;
+        }
+        const result = await response.json();
+        const head = document.createElement("p");
+        head.textContent = `${result.project} · ${result.overallScore.toFixed(1)}/20`
+            + ` · ${result.llmCalls} appel(s) au modèle (${result.model})`;
+        detail.appendChild(head);
+        for (const criterion of result.criteria) {
+            detail.appendChild(renderCriterion(criterion));
+        }
+    } catch (e) {
+        showError("Impossible de charger cette analyse.");
+    }
 }
