@@ -8,6 +8,7 @@ import com.reviewerai.criteria.Criterion;
 import com.reviewerai.criteria.CriterionRegistry;
 import com.reviewerai.criteria.DesignPatternCriterion;
 import com.reviewerai.criteria.DocumentationCriterion;
+import com.reviewerai.criteria.DuplicationCriterion;
 import com.reviewerai.criteria.ErrorHandlingCriterion;
 import com.reviewerai.criteria.ProjectStructureCriterion;
 import com.reviewerai.criteria.ReadabilityCriterion;
@@ -152,6 +153,7 @@ public final class EvaluationServiceFactory {
                 new ProjectStructureCriterion(),
                 new TestPresenceCriterion(),
                 new DocumentationCriterion(),
+                new DuplicationCriterion(config.maxFileSizeBytes()),
                 new ArchitectureCriterion(contextBuilder, llm, parser, verifier, tokens),
                 new ReadabilityCriterion(contextBuilder, llm, parser, verifier, tokens),
                 new SolidCriterion(contextBuilder, llm, parser, verifier, tokens),
