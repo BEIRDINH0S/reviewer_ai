@@ -28,6 +28,8 @@ import java.util.Optional;
  * @param llmTimeoutSeconds délai maximal d'un appel au modèle
  * @param maxAttempts       nombre total de tentatives par appel, la première comprise
  * @param minConfidence     confiance en dessous de laquelle un signalement est écarté
+ * @param maxNeighborDepth  profondeur d'exploration du graphe d'appel autour d'une méthode centrale
+ * @param maxNeighbors      nombre maximal de méthodes voisines jointes à une méthode centrale
  */
 public record EvaluationConfig(
         Path projectSource,
@@ -44,7 +46,9 @@ public record EvaluationConfig(
         long maxFileSizeBytes,
         int llmTimeoutSeconds,
         int maxAttempts,
-        double minConfidence) {
+        double minConfidence,
+        int maxNeighborDepth,
+        int maxNeighbors) {
 
     public EvaluationConfig {
         Objects.requireNonNull(projectSource, "projectSource");
@@ -116,6 +120,10 @@ public record EvaluationConfig(
         private int llmTimeoutSeconds = 120;
         private int maxAttempts = 3;
         private double minConfidence = 0.5;
+        // Une seule couche de voisinage suffit à montrer les relations directes ; au-delà, le
+        // contexte se dilue. Six voisines : assez pour juger le couplage, sans noyer le budget.
+        private int maxNeighborDepth = 1;
+        private int maxNeighbors = 6;
 
         public Builder projectSource(Path v) { this.projectSource = v; return this; }
         public Builder criterionIds(List<String> v) { this.criterionIds = v; return this; }
@@ -132,6 +140,8 @@ public record EvaluationConfig(
         public Builder llmTimeoutSeconds(int v) { this.llmTimeoutSeconds = v; return this; }
         public Builder maxAttempts(int v) { this.maxAttempts = v; return this; }
         public Builder minConfidence(double v) { this.minConfidence = v; return this; }
+        public Builder maxNeighborDepth(int v) { this.maxNeighborDepth = v; return this; }
+        public Builder maxNeighbors(int v) { this.maxNeighbors = v; return this; }
 
         /**
          * @throws IllegalStateException si le projet à évaluer n'a pas été indiqué
@@ -146,6 +156,8 @@ public record EvaluationConfig(
             requirePositive(maxFilesPerCriterion, "maxFilesPerCriterion");
             requirePositive(llmTimeoutSeconds, "llmTimeoutSeconds");
             requirePositive(maxAttempts, "maxAttempts");
+            requirePositive(maxNeighborDepth, "maxNeighborDepth");
+            requirePositive(maxNeighbors, "maxNeighbors");
             if (maxFileSizeBytes <= 0) {
                 throw new IllegalArgumentException("maxFileSizeBytes doit être positif");
             }
@@ -155,7 +167,7 @@ public record EvaluationConfig(
             return new EvaluationConfig(projectSource, criterionIds, includePatterns, excludePatterns,
                     reportFile, historyDirectory, ollamaBaseUrl, modelName, maxContextTokens,
                     maxResponseTokens, maxFilesPerCriterion, maxFileSizeBytes, llmTimeoutSeconds,
-                    maxAttempts, minConfidence);
+                    maxAttempts, minConfidence, maxNeighborDepth, maxNeighbors);
         }
 
         private static void requirePositive(int value, String name) {
