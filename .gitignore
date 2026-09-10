@@ -20,5 +20,9 @@ evaluation.md
 out/
 historique/
 
+# Exception : le rapport d'exemple, lui, est un livrable versionné (voir docs/exemple/).
+!docs/exemple/evaluation.tex
+!docs/exemple/evaluation.pdf
+
 # Repos de test clonés localement
 testdata/clones/

@@ -36,6 +36,10 @@ host_path() {
 PROJECT="${1:?chemin du projet à évaluer}"
 CRITERIA="${2:-}"
 
+# Modèle à interroger ; vide = le défaut de l'application. Permet de viser un petit modèle
+# local sans toucher au code, ex. MODEL=qwen2.5-coder:1.5b.
+MODEL="${MODEL:-}"
+
 MODE="${MODE:-isolated}"
 NETWORK=reviewer-net
 IMAGE=ai-reviewer
@@ -76,4 +80,5 @@ docker run --rm $NET_ARGS \
   "$IMAGE" \
   --project /projet \
   ${CRITERIA:+--criteria "$CRITERIA"} \
+  ${MODEL:+--model "$MODEL"} \
   --out /out/evaluation.tex --ollama-url "$OLLAMA_URL"

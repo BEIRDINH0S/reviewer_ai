@@ -51,6 +51,16 @@ java -jar target/ai-reviewer.jar --serve
 
 `--help` liste toutes les options, `--list-criteria` liste les critères disponibles.
 
+### Rapport d'exemple
+
+[`docs/exemple/`](docs/exemple/) contient un rapport réellement produit par l'application, en
+évaluant ce dépôt lui-même avec le petit modèle `qwen2.5-coder:1.5b`. La commande exacte :
+
+```bash
+ollama pull qwen2.5-coder:1.5b
+MODEL=qwen2.5-coder:1.5b MODE=trusted docker/run-analysis.sh .
+```
+
 ---
 
 ## Les critères
