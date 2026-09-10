@@ -23,7 +23,9 @@ WORKDIR /app
 COPY --from=build /app/target/ai-reviewer.jar ./ai-reviewer.jar
 
 # Utilisateur sans privilèges. Le conteneur est aussi lancé avec --read-only.
-RUN useradd --uid 1000 --create-home reviewer
+# L'image de base Temurin livre déjà un utilisateur d'uid 1000 : on ne le recrée que s'il
+# manque, sinon useradd échoue (« UID already in use »). Ce qui compte est de tourner en 1000.
+RUN useradd --uid 1000 --create-home reviewer 2>/dev/null || true
 USER 1000:1000
 
 # -Xmx explicite : un fichier piégé ne doit pas pouvoir saturer la machine hôte.
