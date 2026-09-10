@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.reviewerai.config.EvaluationConfig;
 import com.reviewerai.criteria.CriterionDescriptor;
+import com.reviewerai.history.HistoryEntry;
 import com.reviewerai.model.CriterionResult;
 import com.reviewerai.model.EvaluationResult;
 import com.reviewerai.model.Finding;
@@ -114,6 +115,32 @@ public final class WebJson {
             node.put("report", state.report());
         }
         return mapper.writeValueAsString(node);
+    }
+
+    /**
+     * La liste de l'historique : un résumé par analyse, du plus récent au plus ancien.
+     *
+     * <p>Volontairement pauvre — juste de quoi peupler la liste sans relire chaque rapport
+     * complet. Le détail n'est chargé qu'au clic, via {@link #toResultJson}.
+     */
+    public String toHistoryJson(List<HistoryEntry> entries) throws IOException {
+        ObjectNode node = mapper.createObjectNode();
+        ArrayNode array = node.putArray("history");
+        for (HistoryEntry entry : entries) {
+            ObjectNode item = array.addObject();
+            item.put("id", entry.id());
+            item.put("project", entry.projectName());
+            item.put("analysedAt", entry.analysedAt().toString());
+            item.put("overallScore", entry.overallScore());
+            item.put("criteriaCount", entry.criteriaCount());
+            item.put("model", entry.modelName());
+        }
+        return mapper.writeValueAsString(node);
+    }
+
+    /** Une analyse complète de l'historique, telle que l'affichage du détail l'attend. */
+    public String toResultJson(EvaluationResult result) throws IOException {
+        return mapper.writeValueAsString(toNode(result));
     }
 
     /** Un message d'erreur simple, pour les réponses HTTP en échec. */
