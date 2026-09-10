@@ -102,7 +102,7 @@ public final class DefaultEvaluationService implements EvaluationService {
                 config.describe(),
                 results,
                 Duration.ofNanos(System.nanoTime() - startedAt),
-                llmCounter.callCount() - callsBefore,
+                llmCallCount(callsBefore),
                 collector.warnings());
 
         record(result, collector);
@@ -207,6 +207,17 @@ public final class DefaultEvaluationService implements EvaluationService {
         } catch (RuntimeException e) {
             listener.onWarning("Évaluation non conservée dans l'historique : " + describe(e));
         }
+    }
+
+    /**
+     * Le nombre d'appels au modèle à faire figurer dans le rapport.
+     *
+     * <p>Hors ligne, la doublure est bien sollicitée une fois par critère, mais aucun modèle
+     * n'est joint. Reporter ces sollicitations donnerait un rapport qui se contredit :
+     * « modèle interrogé : hors ligne » au-dessus de « appels au modèle : 6 ».
+     */
+    private int llmCallCount(int callsBefore) {
+        return llmCounter.isLive() ? llmCounter.callCount() - callsBefore : 0;
     }
 
     /**

@@ -86,6 +86,38 @@ class LatexEscaperTest {
     }
 
     @Test
+    @DisplayName("un caractère hors Latin-1 est traduit plutôt que laissé tel quel")
+    void beyondLatin1IsTranslated() {
+        // inputenc s'arrête sur une erreur devant ces caractères : le rapport ne compilerait pas.
+        assertEquals(">= 0,50", LatexEscaper.escape("\u2265 0,50"));
+        assertEquals("a --- b", LatexEscaper.escape("a \u2014 b"));
+        assertEquals("...", LatexEscaper.escape("\u2026"));
+    }
+
+    @Test
+    @DisplayName("un caractère exotique sans équivalent devient un point d'interrogation")
+    void unknownSymbolBecomesAQuestionMark() {
+        assertEquals("note ?", LatexEscaper.escape("note \u4e2d"),
+                "mieux vaut perdre un caractère que produire un document incompilable");
+    }
+
+    @Test
+    @DisplayName("un emoji ne fait pas échouer la compilation")
+    void emojiIsReplaced() {
+        // Un emoji est codé sur deux caractères Java ; les deux doivent être neutralisés.
+        String escaped = LatexEscaper.escape("bravo \ud83d\ude00");
+
+        assertFalse(escaped.codePoints().anyMatch(cp -> cp > 0xFF));
+    }
+
+    @Test
+    @DisplayName("les accents français traversent sans dommage")
+    void frenchAccentsSurviveTheLatin1Filter() {
+        assertEquals("Le découpage est cohérent, à revoir çà et là",
+                LatexEscaper.escape("Le découpage est cohérent, à revoir çà et là"));
+    }
+
+    @Test
     @DisplayName("une cellule de tableau trop longue est tronquée")
     void tableCellIsTruncated() {
         String escaped = LatexEscaper.escapeCell("x".repeat(200), 50);

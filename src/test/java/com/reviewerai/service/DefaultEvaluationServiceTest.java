@@ -178,6 +178,28 @@ class DefaultEvaluationServiceTest {
         return CountingLlmProvider.silent(StubLlmProvider.silent());
     }
 
+    /**
+     * Doublure qui se présente comme un vrai fournisseur.
+     *
+     * <p>{@link StubLlmProvider} se déclare hors ligne, et le rapport ne compte alors aucun
+     * appel — c'est voulu. Pour vérifier que le comptage fonctionne, il faut donc une doublure
+     * qui réponde comme un modèle joignable.
+     */
+    private static CountingLlmProvider liveCounter() {
+        return CountingLlmProvider.silent(new com.reviewerai.llm.LlmProvider() {
+            @Override
+            public com.reviewerai.llm.LlmResponse ask(LlmRequest request) {
+                return new com.reviewerai.llm.LlmResponse("réponse", "modele-test",
+                        java.time.Duration.ZERO);
+            }
+
+            @Override
+            public String modelName() {
+                return "modele-test";
+            }
+        });
+    }
+
     // --- échecs fatals ---
 
     @Test
@@ -350,7 +372,7 @@ class DefaultEvaluationServiceTest {
     @Test
     @DisplayName("le nombre d'appels au modèle est celui qu'a compté le décorateur")
     void llmCallsAreCounted() {
-        var counter = CountingLlmProvider.silent(StubLlmProvider.returning("réponse"));
+        var counter = liveCounter();
         var service = service(
                 CriterionRegistry.of(new CallingCriterion("a", counter), new CallingCriterion("b", counter)),
                 new InMemoryAnalysisHistory(), counter, config());
@@ -363,7 +385,7 @@ class DefaultEvaluationServiceTest {
     @Test
     @DisplayName("deux évaluations successives ne cumulent pas leurs appels")
     void callCountIsPerEvaluation() {
-        var counter = CountingLlmProvider.silent(StubLlmProvider.returning("réponse"));
+        var counter = liveCounter();
         var service = service(CriterionRegistry.of(new CallingCriterion("a", counter)),
                 new InMemoryAnalysisHistory(), counter, config());
 
@@ -379,6 +401,19 @@ class DefaultEvaluationServiceTest {
         var service = service(CriterionRegistry.of(new FixedCriterion("a", 8)));
 
         assertEquals("hors ligne", service.evaluate(ProgressListener.noop()).modelName());
+    }
+
+    @Test
+    @DisplayName("hors ligne, aucun appel au modèle n'est reporté")
+    void offlineEvaluationReportsNoCall() {
+        var counter = CountingLlmProvider.silent(StubLlmProvider.silent());
+        var service = service(CriterionRegistry.of(new CallingCriterion("a", counter)),
+                new InMemoryAnalysisHistory(), counter, config());
+
+        var result = service.evaluate(ProgressListener.noop());
+
+        assertEquals(0, result.llmCalls(),
+                "sinon le rapport annoncerait des appels vers un modèle qu'il dit hors ligne");
     }
 
     // --- historique ---
