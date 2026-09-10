@@ -12,7 +12,7 @@
  *   <li>une analyse dure plusieurs minutes, donc la requête qui la lance répond aussitôt et
  *       la page vient ensuite demander l'avancement toutes les deux secondes ;
  *   <li>l'état est partagé entre le fil qui analyse et celui qui répond aux requêtes, d'où un
- *       {@link com.reviewerai.view.web.ReviewState} immuable rangé dans une référence atomique ;
+ *       {@link com.reviewerai.view.web.EvaluationState} immuable rangé dans une référence atomique ;
  *   <li>les textes affichés viennent du modèle, donc du code analysé : la page les insère avec
  *       {@code textContent} et le serveur interdit les scripts en ligne par un en-tête
  *       {@code Content-Security-Policy}.

@@ -3,7 +3,7 @@ package com.reviewerai.config;
 /**
  * Réglages du serveur web.
  *
- * <p>Séparé de {@link ReviewerConfig} parce que ces deux objets n'ont ni le même cycle de vie
+ * <p>Séparé de {@link EvaluationConfig} parce que ces deux objets n'ont ni le même cycle de vie
  * ni la même origine : le serveur est configuré une fois au démarrage, tandis que les
  * paramètres d'une analyse arrivent du formulaire, à chaque requête.
  *
