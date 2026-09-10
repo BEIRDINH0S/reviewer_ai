@@ -1,42 +1,61 @@
 <body>
-<h1>AI Reviewer</h1>
+<h1>AI Project Reviewer</h1>
 
-<p>Un outil qui relit le code d'une pull request Java et signale les bugs potentiels.</p>
+<p>Un outil qui évalue automatiquement un projet Java selon des critères notés, et produit un
+rapport LaTeX.</p>
 
 <h2>Le principe</h2>
 
-<p>Envoyer un dépôt entier à un modèle de langage coûte cher et donne de mauvais résultats :
-le modèle se perd. Cet outil procède autrement. Il repère d'abord les méthodes modifiées entre
-deux commits, puis construit un graphe des appels entre méthodes, et n'envoie au modèle que la
-méthode modifiée accompagnée de ses voisines directes. Le contexte reste assez petit pour
-qu'un modèle local suffise.</p>
+<p>Envoyer un projet entier à un modèle de langage est impossible : plusieurs centaines de
+fichiers face à une fenêtre de contexte de quelques milliers de jetons. Cet outil procède
+autrement. Chaque critère d'évaluation déclare les fichiers qui le concernent, et reçoit une
+sélection d'extraits choisie pour lui, sous un budget de jetons. Le contexte reste assez petit
+pour qu'un modèle local suffise.</p>
 
-<h2>Le parcours d'une analyse</h2>
+<p>Une partie des critères ne fait appel à aucun modèle : compter des fichiers de test est
+exact, gratuit et instantané, là où interroger un modèle serait lent, coûteux et faux de temps
+en temps. Les deux familles cohabitent derrière la même interface.</p>
+
+<h2>Le parcours d'une évaluation</h2>
 
 <ol>
-  <li>Le <b>diff</b> compare les deux commits et remonte jusqu'aux méthodes concernées.</li>
-  <li>Le <b>graphe</b> indexe le dépôt : quelle méthode appelle quelle autre.</li>
-  <li>Le <b>contexte</b> assemble, pour chaque méthode modifiée, son code et celui de ses
-      voisines, sous un budget de tokens.</li>
-  <li>Le <b>modèle</b> analyse ce contexte et renvoie une liste de problèmes.</li>
-  <li>La <b>vérification</b> écarte ce qui n'est pas crédible.</li>
-  <li>Le <b>rapport</b> met le reste en forme.</li>
+  <li>Le <b>chargement</b> importe le projet — répertoire, dépôt git ou archive — et classe ses
+      fichiers.</li>
+  <li>Chaque <b>critère</b> note le projet sur un aspect : architecture, lisibilité, sécurité,
+      présence de tests…</li>
+  <li>Le <b>contexte</b> choisit, pour chaque critère confié au modèle, les extraits à envoyer,
+      sous un budget de jetons.</li>
+  <li>Le <b>modèle</b> renvoie une note argumentée, avec réessai en cas de panne.</li>
+  <li>La <b>vérification</b> écarte ce que le modèle a inventé — notamment tout signalement
+      citant un fichier qu'on ne lui a pas montré.</li>
+  <li>Le <b>rapport</b> met le résultat en forme, en LaTeX ou en Markdown.</li>
 </ol>
 
 <h2>Par où commencer la lecture</h2>
 
 <ul>
-  <li><code>com.reviewerai.model.MethodRef</code> — l'identifiant qui circule entre toutes les
-      briques.</li>
-  <li><code>com.reviewerai.service.DefaultReviewService</code> — l'enchaînement complet, en une
-      classe.</li>
-  <li><code>com.reviewerai.service.ReviewServiceFactory</code> — le seul endroit où les
-      implémentations concrètes sont choisies.</li>
+  <li><code>com.reviewerai.criteria.Criterion</code> — le coeur du projet : ce que l'outil sait
+      juger, et le point d'extension principal.</li>
+  <li><code>com.reviewerai.criteria.AbstractLlmCriterion</code> — le déroulé commun aux critères
+      confiés au modèle, fixé une fois pour toutes.</li>
+  <li><code>com.reviewerai.service.DefaultEvaluationService</code> — l'enchaînement complet, en
+      une classe.</li>
+  <li><code>com.reviewerai.service.EvaluationServiceFactory</code> — le seul endroit, avec
+      <code>Main</code>, où les implémentations concrètes sont choisies. C'est là que se lisent
+      les réponses à « comment changer de modèle ? » et « comment ajouter un critère ? » : une
+      ligne chacune.</li>
+  <li><code>com.reviewerai.model.EvaluationResult</code> — ce que produit une évaluation, et
+      tout ce dont le rapport a besoin.</li>
 </ul>
 
-<h2>Une règle qui traverse le projet</h2>
+<h2>Deux règles qui traversent le projet</h2>
 
-<p>Le code analysé n'est jamais exécuté : pas de compilation, pas de script de build, pas de
-téléchargement de dépendances. Il est lu, et rien de plus.</p>
+<p><b>Le projet évalué n'est jamais exécuté</b> : pas de compilation, pas de script de
+construction, pas de téléchargement de dépendances. Il est lu, et rien de plus.</p>
+
+<p><b>Ce que renvoie le modèle est une donnée non fiable</b>, parce qu'il a lu du code qui peut
+contenir une injection de prompt. Sa réponse est validée, filtrée, puis échappée selon le
+format de sortie — et l'échappement LaTeX est une mesure de sécurité, pas de mise en forme :
+LaTeX est un langage exécutable dont le compilateur sait lire des fichiers.</p>
 
 </body>
