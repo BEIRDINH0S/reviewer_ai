@@ -129,7 +129,8 @@ class LatexReportWriterTest {
     void unevaluatedCriterionHasNoScoreInTheTable() {
         String tex = render(List.of(CriterionResult.failed("b", "Lisibilité", 10, "panne")));
 
-        assertTrue(tex.contains("Lisibilité & --- & 10"), "afficher 0 laisserait croire à une note");
+        assertTrue(tex.contains("Lisibilité & --- & ---"),
+                "afficher son maximum ferait croire à une erreur de calcul dans le total");
     }
 
     // --- sécurité : le point critique ---
@@ -201,13 +202,26 @@ class LatexReportWriterTest {
     }
 
     @Test
+    @DisplayName("une valeur de contexte longue peut se replier plutôt que déborder")
+    void longContextValueWraps() {
+        String tex = render(List.of(criterion("a", "Architecture", 8)));
+
+        // Une colonne « l » prend sa largeur naturelle : la ligne de configuration, longue de
+        // plus de cent caractères, sortait de la page et se faisait couper.
+        assertTrue(tex.contains("p{0.62\\textwidth}"),
+                "la colonne des valeurs doit avoir une largeur bornée");
+        assertTrue(tex.contains("\\raggedright"),
+                "justifiée, une ligne repliée de deux mots verrait ses espaces étirés");
+    }
+
+    @Test
     @DisplayName("le préambule ne charge que des paquets courants")
     void preambleStaysPortable() {
         String tex = render(List.of(criterion("a", "Architecture", 8)));
 
         assertTrue(tex.startsWith("%"), "le document annonce qu'il est engendré");
         assertTrue(tex.contains("\\documentclass[11pt,a4paper]{article}"));
-        for (String pkg : List.of("inputenc", "fontenc", "longtable", "geometry", "hyperref")) {
+        for (String pkg : List.of("inputenc", "fontenc", "array", "longtable", "geometry", "hyperref")) {
             assertTrue(tex.contains("{" + pkg + "}"), "paquet manquant : " + pkg);
         }
         assertTrue(tex.trim().endsWith("\\end{document}"));

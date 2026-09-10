@@ -34,6 +34,12 @@ import java.util.Objects;
  *
  * <p>Le préambule est volontairement minimal, pour que le fichier compile avec une installation
  * LaTeX ordinaire — y compris celle, réduite, du conteneur.
+ *
+ * <p><b>Compiler deux fois.</b> Le tableau de synthèse est un {@code longtable}, qui mesure ses
+ * colonnes à la première passe et ne les applique qu'à la seconde. Une compilation unique donne
+ * un tableau dont les en-têtes ne sont pas alignés sur leurs colonnes. C'est le comportement
+ * normal de LaTeX, le même que pour la table des matières ou les références :
+ * <pre>pdflatex evaluation.tex &amp;&amp; pdflatex evaluation.tex</pre>
  */
 public final class LatexReportWriter implements ReportWriter {
 
@@ -83,6 +89,7 @@ public final class LatexReportWriter implements ReportWriter {
                 .append("\\documentclass[11pt,a4paper]{article}\n")
                 .append("\\usepackage[utf8]{inputenc}\n")
                 .append("\\usepackage[T1]{fontenc}\n")
+                .append("\\usepackage{array}\n")
                 .append("\\usepackage{longtable}\n")
                 .append("\\usepackage{geometry}\n")
                 .append("\\usepackage{hyperref}\n")
@@ -105,8 +112,11 @@ public final class LatexReportWriter implements ReportWriter {
      * projet, date, configuration utilisée, modèle interrogé.
      */
     private static void appendContext(StringBuilder tex, EvaluationResult result) {
+        // Une colonne « p » plutôt que « l » : la configuration tient sur plusieurs lignes et
+        // déborderait de la page dans une colonne à largeur naturelle. En drapeau plutôt que
+        // justifiée, sinon LaTeX étire les espaces d'une ligne repliée de deux mots.
         tex.append("\\section*{Contexte de l'analyse}\n")
-                .append("\\begin{tabular}{@{}ll@{}}\n");
+                .append("\\begin{tabular}{@{}l>{\\raggedright\\arraybackslash}p{0.62\\textwidth}@{}}\n");
 
         appendContextRow(tex, "Projet", result.project().name());
         appendContextRow(tex, "Provenance", result.project().origin().label());
@@ -146,11 +156,14 @@ public final class LatexReportWriter implements ReportWriter {
                 .append("\\endhead\n");
 
         for (CriterionResult criterion : result.criteria()) {
+            // Un critère non évalué n'entre pas dans le total : afficher son maximum ferait
+            // croire à une erreur de calcul, le lecteur additionnant une colonne dont le total
+            // ne reprend qu'une partie.
+            String score = criterion.evaluated() ? String.valueOf(criterion.score()) : "---";
+            String max = criterion.evaluated() ? String.valueOf(criterion.maxScore()) : "---";
             tex.append(LatexEscaper.escapeCell(criterion.label(), MAX_TABLE_CELL))
-                    .append(" & ")
-                    .append(criterion.evaluated() ? String.valueOf(criterion.score()) : "---")
-                    .append(" & ")
-                    .append(criterion.maxScore())
+                    .append(" & ").append(score)
+                    .append(" & ").append(max)
                     .append(" \\\\\n");
         }
 
