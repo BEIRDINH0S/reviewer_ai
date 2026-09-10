@@ -1,0 +1,153 @@
+% Document engendré automatiquement par AI Project Reviewer.
+% Ne pas modifier à la main : il est réécrit à chaque évaluation.
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{geometry}
+\usepackage{hyperref}
+\geometry{margin=2.5cm}
+
+\title{Évaluation de projet}
+\date{10/09/2026 à 13h44}
+\author{AI Project Reviewer}
+
+\begin{document}
+\maketitle
+
+\section*{Contexte de l'analyse}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.62\textwidth}@{}}
+\textbf{Projet} & projet \\
+\textbf{Provenance} & dépôt git \\
+\textbf{Révision} & 18d93a0 \\
+\textbf{Date d'analyse} & 10/09/2026 à 13h44 \\
+\textbf{Modèle interrogé} & qwen2.5-coder:1.5b \\
+\textbf{Appels au modèle} & 6 \\
+\textbf{Durée} & 1 min 02 s \\
+\textbf{Configuration} & modèle qwen2.5-coder:1.5b · budget 6000 jetons · 12 fichiers/critère · confiance >= 0.50 · 3 tentative(s) \\
+\end{tabular}
+
+\section*{Synthèse}
+\begin{longtable}{@{}lrr@{}}
+\hline
+\textbf{Critère} & \textbf{Note} & \textbf{Maximum} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Critère} & \textbf{Note} & \textbf{Maximum} \\
+\hline
+\endhead
+Organisation du projet & 10 & 10 \\
+Présence de tests & 4 & 10 \\
+Documentation & 10 & 10 \\
+Architecture et modularité & 0 & 10 \\
+Lisibilité du code & 9 & 10 \\
+Respect des principes SOLID & 0 & 10 \\
+Pertinence des patrons de conception & 0 & 10 \\
+Gestion des erreurs & 10 & 10 \\
+Sécurité & 10 & 10 \\
+\hline
+\textbf{Total} & \textbf{53} & \textbf{90} \\
+\hline
+\end{longtable}
+
+\begin{center}
+\Large\textbf{Note globale : 11,8\,/\,20}
+\end{center}
+
+L'évaluation a porté sur 9 critère(s) sur 9, et relevé 0 signalement(s) : 0 de gravité haute, 0 moyenne, 0 basse.
+
+\section{Organisation du projet — 10/10}
+Organisation évaluée sur 147 fichier(s).
+
+\subsection*{Points forts}
+\begin{itemize}
+  \item Le projet déclare sa construction (pom.xml).
+  \item Les sources suivent la disposition conventionnelle src/main/java.
+  \item Une stratégie de déploiement est fournie (Docker).
+  \item Aucun fichier ne dépasse 600 lignes.
+\end{itemize}
+
+\section{Présence de tests — 4/10}
+Le projet contient 24 fichier(s) de test pour 107 classe(s) de production.
+
+\subsection*{Points forts}
+\begin{itemize}
+  \item 24 fichier(s) de test pour 107 classe(s) de production, soit un rapport de 0.22.
+  \item 2969 lignes de test au total.
+\end{itemize}
+
+\subsection*{Points faibles}
+\begin{itemize}
+  \item Le rapport reste sous 0.50 : une partie des classes n'est pas couverte.
+\end{itemize}
+
+\subsection*{Recommandations}
+\begin{itemize}
+  \item Cibler en priorité les classes sans test qui portent des règles métier.
+\end{itemize}
+
+\section{Documentation — 10/10}
+Le projet est documenté : README présent, 8 fichier(s) de documentation.
+
+\subsection*{Points forts}
+\begin{itemize}
+  \item Un README est présent à la racine du projet.
+  \item 8 fichier(s) de documentation.
+  \item 18 paquet(s) sur 18 disposent d'un package-info.
+\end{itemize}
+
+\section{Architecture et modularité — 0/10}
+\section{Lisibilité du code — 9/10}
+Le code est clair et facile à comprendre.
+
+\subsection*{Points forts}
+\begin{itemize}
+  \item Le code est organisé en modules clairs.
+  \item Les fonctions sont bien définies et explicites.
+  \item Les commentaires sont utiles et clarifies le contexte.
+\end{itemize}
+
+\subsection*{Points faibles}
+\begin{itemize}
+  \item Il existe des espaces inutiles.
+  \item Il y a une incohérence dans les noms de variables.
+  \item Il manque des annotations de documentation.
+\end{itemize}
+
+\subsection*{Recommandations}
+\begin{itemize}
+  \item Enlever les espaces inutiles.
+  \item Refaire les noms de variables de manière cohérente.
+  \item Ajouter des annotations de documentation.
+\end{itemize}
+
+\section{Respect des principes SOLID — 0/10}
+\section{Pertinence des patrons de conception — 0/10}
+\section{Gestion des erreurs — 10/10}
+Le projet a une qualité élevée dans la gestion des erreurs.
+
+\subsection*{Points forts}
+\begin{itemize}
+  \item Le projet utilise une approche robuste et préventive pour identifier les erreurs.
+  \item L'utilisation de bibliothèques et frameworks modernes aide à protéger les applications contre les erreurs.
+\end{itemize}
+
+\subsection*{Points faibles}
+\begin{itemize}
+  \item Il est important de noter que le système de gestion des erreurs pourrait être plus performant si les erreurs étaient traitées à l'origine.
+  \item Il est essentiel de mettre en place un mécanisme d'intervention pour corriger les erreurs trouvées.
+\end{itemize}
+
+\subsection*{Recommandations}
+\begin{itemize}
+  \item Le projet devrait être testé avec diverses conditions de performance pour s'assurer qu'il fonctionne correctement.
+  \item Il est crucial de mettre en place des mécanismes d'intervention pour corriger les erreurs trouvées.
+  \item Le projet devrait être testé avec diverses conditions de performance pour s'assurer qu'il fonctionne correctement.
+\end{itemize}
+
+\section{Sécurité — 10/10}
+Le projet est considéré comme\_SECURE
+
+\end{document}
