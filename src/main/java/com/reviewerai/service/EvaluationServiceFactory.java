@@ -115,11 +115,20 @@ public final class EvaluationServiceFactory {
      * <p>Changer de fournisseur de modèle ne touche qu'à la ligne d'appel de cette méthode :
      * écrire une classe qui implémente {@link LlmProvider}, la passer ici, et la résilience
      * comme la traçabilité s'appliquent sans un mot de plus.
+     *
+     * <p>Un fournisseur hors ligne n'est pas enveloppé de {@link RetryingLlmProvider} :
+     * réessayer ce qui ne joint aucun modèle n'a aucun sens. Sa réponse vide serait traitée
+     * comme un échec passager et retentée trois fois, avec une seconde puis deux secondes
+     * d'attente — dix-huit secondes perdues sur les neuf critères, précisément ce qui dissuade
+     * de se servir du mode hors ligne, qui existe pour être instantané. Le compteur, lui, reste
+     * utile dans les deux cas : il mesure les sollicitations.
      */
     private static CountingLlmProvider llmProvider(EvaluationConfig config,
                                                    LlmProvider provider,
                                                    Consumer<String> journal) {
-        LlmProvider resilient = new RetryingLlmProvider(provider, config.maxAttempts(), 1000);
+        LlmProvider resilient = provider.isLive()
+                ? new RetryingLlmProvider(provider, config.maxAttempts(), 1000)
+                : provider;
         return new CountingLlmProvider(resilient, journal);
     }
 
