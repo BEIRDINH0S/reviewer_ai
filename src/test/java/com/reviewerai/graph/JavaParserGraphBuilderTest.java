@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests de la brique Graphe — à écrire par la personne 3.
+ * Tests de la brique Graphe, à écrire avec l'implémentation.
  *
  * <p>Écrire les sources d'exemple dans un {@code @TempDir} plutôt que dans
  * {@code src/test/resources} : elles resteraient sinon compilées avec le projet.

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests de la brique Diff — à écrire par la personne 2.
+ * Tests de la brique Diff, à écrire avec l'implémentation.
  *
  * <p>Créer les dépôts de test dans un {@code @TempDir} avec l'API JGit ({@code Git.init()},
  * {@code Git.commit()}) : aucun dépôt figé à versionner, et chaque test part d'un état propre.
