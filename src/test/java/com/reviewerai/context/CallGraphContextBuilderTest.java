@@ -65,6 +65,35 @@ class CallGraphContextBuilderTest {
         return graph;
     }
 
+    @Test
+    @DisplayName("le plafond d'extraits n'empêche plus d'utiliser le budget de jetons")
+    void excerptCapDoesNotStarveTheTokenBudget() {
+        FakeCodeGraph graph = starGraph();
+        var builder = new CallGraphContextBuilder(config(6000), (CodeGraphBuilder) repo -> graph,
+                failingFallback());
+
+        EvaluationContext context = builder.build(PROJECT, DESCRIPTOR, FileSelector.all());
+
+        // Le graphe en étoile n'a que cinq méthodes : toutes doivent passer, là où l'ancien
+        // plafond hérité des fichiers aurait pu en couper une partie.
+        assertEquals(graph.methods().size(), context.excerpts().size(),
+                "toutes les méthodes du graphe tiennent dans le budget et doivent être envoyées");
+        assertTrue(context.estimatedTokens() <= 6000, "le budget de jetons reste la vraie borne");
+    }
+
+    @Test
+    @DisplayName("le budget de jetons prime toujours sur le plafond d'extraits")
+    void tokenBudgetStillWinsOverTheExcerptCap() {
+        FakeCodeGraph graph = starGraph();
+        var builder = new CallGraphContextBuilder(config(40), (CodeGraphBuilder) repo -> graph,
+                failingFallback());
+
+        EvaluationContext context = builder.build(PROJECT, DESCRIPTOR, FileSelector.all());
+
+        assertTrue(context.estimatedTokens() <= 40,
+                "un plafond d'extraits plus généreux ne doit jamais faire déborder le budget");
+    }
+
     private static EvaluationConfig config(int maxContextTokens) {
         return EvaluationConfig.builder()
                 .projectSource(Path.of("."))

@@ -24,6 +24,8 @@ import java.util.Optional;
  * @param maxContextTokens  budget de jetons pour le contexte d'UN critère
  * @param maxResponseTokens plafond de la réponse attendue du modèle
  * @param maxFilesPerCriterion nombre maximal de fichiers envoyés pour un critère
+ * @param maxExcerptsPerCriterion nombre maximal d'extraits envoyés par une stratégie qui
+ *                             découpe plus fin que le fichier, comme le graphe d'appel
  * @param maxFileSizeBytes  taille maximale d'un fichier lu (protection fichiers piégés)
  * @param llmTimeoutSeconds délai maximal d'un appel au modèle
  * @param maxAttempts       nombre total de tentatives par appel, la première comprise
@@ -43,6 +45,7 @@ public record EvaluationConfig(
         int maxContextTokens,
         int maxResponseTokens,
         int maxFilesPerCriterion,
+        int maxExcerptsPerCriterion,
         long maxFileSizeBytes,
         int llmTimeoutSeconds,
         int maxAttempts,
@@ -116,6 +119,11 @@ public record EvaluationConfig(
         private int maxContextTokens = 6000;
         private int maxResponseTokens = 1200;
         private int maxFilesPerCriterion = 12;
+        // Douze fichiers remplissent le budget ; douze méthodes en consomment un cinquième,
+        // une méthode pesant une centaine de jetons contre un millier pour un fichier. Ce
+        // plafond-ci est assez haut pour que ce soit le budget de jetons qui arrête la
+        // sélection, et pas un compte d'extraits calibré pour une autre unité.
+        private int maxExcerptsPerCriterion = 60;
         private long maxFileSizeBytes = 1_000_000L;
         private int llmTimeoutSeconds = 900;
         private int maxAttempts = 3;
@@ -136,6 +144,7 @@ public record EvaluationConfig(
         public Builder maxContextTokens(int v) { this.maxContextTokens = v; return this; }
         public Builder maxResponseTokens(int v) { this.maxResponseTokens = v; return this; }
         public Builder maxFilesPerCriterion(int v) { this.maxFilesPerCriterion = v; return this; }
+        public Builder maxExcerptsPerCriterion(int v) { this.maxExcerptsPerCriterion = v; return this; }
         public Builder maxFileSizeBytes(long v) { this.maxFileSizeBytes = v; return this; }
         public Builder llmTimeoutSeconds(int v) { this.llmTimeoutSeconds = v; return this; }
         public Builder maxAttempts(int v) { this.maxAttempts = v; return this; }
@@ -154,6 +163,7 @@ public record EvaluationConfig(
             requirePositive(maxContextTokens, "maxContextTokens");
             requirePositive(maxResponseTokens, "maxResponseTokens");
             requirePositive(maxFilesPerCriterion, "maxFilesPerCriterion");
+            requirePositive(maxExcerptsPerCriterion, "maxExcerptsPerCriterion");
             requirePositive(llmTimeoutSeconds, "llmTimeoutSeconds");
             requirePositive(maxAttempts, "maxAttempts");
             requirePositive(maxNeighborDepth, "maxNeighborDepth");
@@ -166,7 +176,8 @@ public record EvaluationConfig(
             }
             return new EvaluationConfig(projectSource, criterionIds, includePatterns, excludePatterns,
                     reportFile, historyDirectory, ollamaBaseUrl, modelName, maxContextTokens,
-                    maxResponseTokens, maxFilesPerCriterion, maxFileSizeBytes, llmTimeoutSeconds,
+                    maxResponseTokens, maxFilesPerCriterion, maxExcerptsPerCriterion, maxFileSizeBytes,
+                    llmTimeoutSeconds,
                     maxAttempts, minConfidence, maxNeighborDepth, maxNeighbors);
         }
 
