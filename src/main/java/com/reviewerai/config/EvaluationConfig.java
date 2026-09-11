@@ -117,7 +117,7 @@ public record EvaluationConfig(
         private int maxResponseTokens = 1200;
         private int maxFilesPerCriterion = 12;
         private long maxFileSizeBytes = 1_000_000L;
-        private int llmTimeoutSeconds = 120;
+        private int llmTimeoutSeconds = 900;
         private int maxAttempts = 3;
         private double minConfidence = 0.5;
         // Une seule couche de voisinage suffit à montrer les relations directes ; au-delà, le
