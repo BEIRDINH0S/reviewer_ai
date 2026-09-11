@@ -6,8 +6,10 @@ import com.reviewerai.graph.CodeGraphBuilder;
 import com.reviewerai.model.CodeExcerpt;
 import com.reviewerai.model.CodeGraph;
 import com.reviewerai.model.EvaluationContext;
+import com.reviewerai.model.FileKind;
 import com.reviewerai.model.MethodRef;
 import com.reviewerai.model.ProjectSnapshot;
+import com.reviewerai.project.FileClassifier;
 import com.reviewerai.project.FileSelector;
 
 import java.nio.file.Path;
@@ -38,6 +40,13 @@ import java.util.Set;
  * descend jusqu'à épuiser le budget. Si le budget se resserre, une voisine est réduite à sa
  * signature plutôt que retirée : connaître l'existence d'un lien vaut mieux que l'ignorer. Un
  * graphe vide fait déléguer au repli plutôt que de renvoyer un contexte vide.
+ *
+ * <p><b>Seul le code de production est retenu</b>, en méthode centrale comme en voisine. Un
+ * helper de test est appelé par toutes les méthodes {@code @Test} de son fichier, ce qui lui
+ * donne un degré entrant qu'aucune méthode de production n'atteint : sans ce filtre, la tête du
+ * classement n'est faite que de ces valeurs aberrantes. Le filtre porte sur la sélection, pas
+ * sur le graphe — un appelant de test reste une information exploitable (une méthode
+ * structurante que rien ne teste), et l'effacer du graphe la perdrait définitivement.
  *
  * <p>Le résultat est <b>déterministe</b> : centrales et voisines sont départagées par leur
  * signature, donc deux exécutions sur le même projet produisent exactement le même contexte.
@@ -98,7 +107,10 @@ public final class CallGraphContextBuilder implements ContextBuilder {
      * voisines, jusqu'à épuiser le budget de jetons.
      */
     private List<CodeExcerpt> selectExcerpts(CodeGraph graph) {
-        List<MethodRef> central = graph.methods().stream().sorted(byCentrality(graph)).toList();
+        List<MethodRef> central = graph.methods().stream()
+                .filter(CallGraphContextBuilder::isProduction)
+                .sorted(byCentrality(graph))
+                .toList();
         List<CodeExcerpt> excerpts = new ArrayList<>();
         Set<String> included = new HashSet<>();
         int used = 0;
@@ -182,12 +194,29 @@ public final class CallGraphContextBuilder implements ContextBuilder {
             if (neighbors.size() >= config.maxNeighbors()) {
                 return true;
             }
+            if (!isProduction(method)) {
+                // Écartée en tant qu'extrait, mais laissée dans le parcours : elle a été vue,
+                // donc elle ne sera pas reproposée à la couche suivante.
+                seen.add(method.signature());
+                continue;
+            }
             if (seen.add(method.signature())) {
                 neighbors.add(new Candidate(method, calledByNode, graph.sourceOf(method).orElse(method.signature())));
                 next.add(method);
             }
         }
         return false;
+    }
+
+    /**
+     * Vrai si la méthode appartient au code de production.
+     *
+     * <p>Le classement passe par {@link FileClassifier}, seul endroit du projet qui décide ce
+     * qu'est un fichier de test : un {@code contains("src/test")} écrit ici se tromperait sur
+     * une disposition non conventionnelle, et ferait une deuxième définition à maintenir.
+     */
+    private static boolean isProduction(MethodRef method) {
+        return FileClassifier.classify(method.filePath()) == FileKind.JAVA_MAIN;
     }
 
     private static Comparator<MethodRef> byCentrality(CodeGraph graph) {
