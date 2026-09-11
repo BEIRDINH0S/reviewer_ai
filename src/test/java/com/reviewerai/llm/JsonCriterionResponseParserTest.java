@@ -123,6 +123,49 @@ class JsonCriterionResponseParserTest {
     }
 
     @Test
+    @DisplayName("un JSON valide mais dans un autre schéma est refusé, pas noté 0")
+    void rejectsWellFormedJsonInForeignSchema() {
+        // Réponse réellement produite par qwen2.5-coder:1.5b sur le critère « architecture ».
+        // Avant ce contrôle, elle donnait un 0/10 marqué comme évalué.
+        String response = """
+                {
+                  "criteria": [
+                    {
+                      "name": "Architecture et modularité",
+                      "weight": 10,
+                      "notes": "La structure du projet est claire.",
+                      "feedback": "Le projet est structuré et modulaire."
+                    }
+                  ]
+                }
+                """;
+        assertThrows(CriterionResponseParser.InvalidResponseException.class, () -> parse(response));
+    }
+
+    @Test
+    @DisplayName("une réponse sans note est refusée même si elle contient du texte")
+    void rejectsResponseWithoutScore() {
+        assertThrows(CriterionResponseParser.InvalidResponseException.class,
+                () -> parse("{\"summary\": \"tout va bien\", \"strengths\": [\"propre\"]}"));
+    }
+
+    @Test
+    @DisplayName("une note textuelle est refusée, jamais convertie en 0")
+    void rejectsNonNumericScore() {
+        assertThrows(CriterionResponseParser.InvalidResponseException.class,
+                () -> parse("{\"score\": \"sept\", \"summary\": \"bien\"}"));
+    }
+
+    @Test
+    @DisplayName("un zéro argumenté reste une note recevable")
+    void keepsArguedZero() {
+        CriterionResult result = parse("{\"score\": 0, \"summary\": \"aucune architecture discernable\"}");
+        assertEquals(0, result.score());
+        assertTrue(result.evaluated());
+        assertEquals("aucune architecture discernable", result.summary());
+    }
+
+    @Test
     @DisplayName("une note de 15 sur un barème de 10 est ramenée à 10")
     void clampsScoreAboveMax() {
         assertEquals(10, parse("{\"score\": 15}").score());
