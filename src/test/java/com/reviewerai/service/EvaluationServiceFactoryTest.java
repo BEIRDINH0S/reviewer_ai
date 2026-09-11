@@ -89,7 +89,7 @@ class EvaluationServiceFactoryTest {
      * quoi la stratégie par graphe déléguerait à son repli et le test ne prouverait rien.
      */
     private static void writeCallingClasses(Path project) throws IOException {
-        Path sources = project.resolve("demo");
+        Path sources = project.resolve("src/main/java/demo");
         Files.createDirectories(sources);
         Files.writeString(sources.resolve("Sample.java"),
                 "package demo;\npublic class Sample {\n"
@@ -97,6 +97,21 @@ class EvaluationServiceFactoryTest {
         Files.writeString(sources.resolve("Caller.java"),
                 "package demo;\npublic class Caller {\n  private final Sample sample = new Sample();\n"
                         + "  public int twice(int x) { return sample.add(x, x); }\n}\n");
+    }
+
+    /**
+     * Un fichier de test dont le helper est appelé par cinq méthodes du même fichier — la forme
+     * exacte qui hisse un helper de test en tête du classement par centralité.
+     */
+    private static void writeTestHelper(Path project) throws IOException {
+        Path sources = project.resolve("src/test/java/demo");
+        Files.createDirectories(sources);
+        StringBuilder file = new StringBuilder("package demo;\npublic class SampleTest {\n"
+                + "  private int helper(int x) { return new Sample().add(x, x); }\n");
+        for (int i = 1; i <= 5; i++) {
+            file.append("  public void case").append(i).append("() { helper(").append(i).append("); }\n");
+        }
+        Files.writeString(sources.resolve("SampleTest.java"), file.append("}\n").toString());
     }
 
     /** Le prompt envoyé au modèle pour un seul critère, l'évaluation étant restreinte à lui. */
@@ -125,6 +140,22 @@ class EvaluationServiceFactoryTest {
             assertTrue(promptFor(project, criterionId).contains("méthode structurante"),
                     "le critère « " + criterionId + " » doit recevoir des méthodes et leur voisinage");
         }
+    }
+
+    @Test
+    @DisplayName("aucun extrait de test n'est envoyé, ni comme méthode centrale ni comme voisine")
+    void testCodeNeverReachesTheModel(@TempDir Path project) throws IOException {
+        writeCallingClasses(project);
+        writeTestHelper(project);
+
+        // helper() a cinq appelants, Sample#add en a deux : sans filtre, le helper de test
+        // passerait devant, et ses cinq appelants suivraient comme voisines.
+        String prompt = promptFor(project, "architecture");
+
+        assertFalse(prompt.contains("SampleTest"),
+                "aucune méthode de test ne doit figurer dans le contexte envoyé au modèle");
+        assertTrue(prompt.contains("méthode structurante"),
+                "le contexte doit tout de même venir du graphe, pas du repli");
     }
 
     @Test
