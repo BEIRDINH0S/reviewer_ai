@@ -34,6 +34,10 @@ import java.util.Set;
  * peut dire quelque chose de sensé sur leurs dépendances ; le même modèle devant huit fichiers
  * sans lien apparent ne le peut pas.
  *
+ * <p>Le plafond d'extraits est {@code maxExcerptsPerCriterion}, pas {@code maxFilesPerCriterion} :
+ * l'unité envoyée ici est la méthode, qui pèse une centaine de jetons là où un fichier en pèse un
+ * millier. Appliquer le même compte aux deux unités laissait quatre cinquièmes du budget inutilisés.
+ *
  * <p>Le graphe est construit <b>une seule fois par projet</b> puis mémorisé : le reconstruire
  * pour chacun des neuf critères serait le principal poste de dépense de l'outil. La centralité
  * d'une méthode est mesurée par son nombre d'appelants ; on part des plus centrales et on
@@ -116,7 +120,7 @@ public final class CallGraphContextBuilder implements ContextBuilder {
         int used = 0;
 
         for (MethodRef target : central) {
-            if (used >= config.maxContextTokens() || excerpts.size() >= config.maxFilesPerCriterion()) {
+            if (used >= config.maxContextTokens() || excerpts.size() >= config.maxExcerptsPerCriterion()) {
                 break;
             }
             String source = graph.sourceOf(target).orElse("");
@@ -139,7 +143,7 @@ public final class CallGraphContextBuilder implements ContextBuilder {
     private int addNeighbors(CodeGraph graph, MethodRef target, List<CodeExcerpt> excerpts,
                              Set<String> included, int used) {
         for (Candidate neighbor : neighborsOf(graph, target)) {
-            if (used >= config.maxContextTokens() || excerpts.size() >= config.maxFilesPerCriterion()) {
+            if (used >= config.maxContextTokens() || excerpts.size() >= config.maxExcerptsPerCriterion()) {
                 break;
             }
             if (!included.add(neighbor.method().signature())) {
