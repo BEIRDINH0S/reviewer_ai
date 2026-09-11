@@ -86,7 +86,7 @@ class JsonCriterionResponseParserTest {
     @DisplayName("l'identifiant et le libellé viennent du descripteur, jamais du modèle")
     void trustsDescriptorNotModel() {
         CriterionResult result = parse("""
-                {"criterion": "Autre chose", "score": 5, "maxScore": 100}
+                {"criterion": "Autre chose", "score": 5, "maxScore": 100, "summary": "fixture de test"}
                 """);
 
         assertEquals("architecture", result.criterionId());
@@ -157,6 +157,14 @@ class JsonCriterionResponseParserTest {
     }
 
     @Test
+    @DisplayName("une note sans justification est refusée, si haute soit-elle")
+    void rejectsScoreWithoutSummary() {
+        // Réellement renvoyé par qwen2.5-coder:1.5b sur le critère SOLID : la note seule,
+        // sans un mot. Elle faisait pourtant monter la note globale du projet.
+        assertThrows(InvalidResponseException.class, () -> parse("{\"score\": 10}"));
+    }
+
+    @Test
     @DisplayName("un zéro argumenté reste une note recevable")
     void keepsArguedZero() {
         CriterionResult result = parse("{\"score\": 0, \"summary\": \"aucune architecture discernable\"}");
@@ -168,20 +176,20 @@ class JsonCriterionResponseParserTest {
     @Test
     @DisplayName("une note de 15 sur un barème de 10 est ramenée à 10")
     void clampsScoreAboveMax() {
-        assertEquals(10, parse("{\"score\": 15}").score());
+        assertEquals(10, parse("{\"score\": 15, \"summary\": \"note hors bornes\"}").score());
     }
 
     @Test
     @DisplayName("une note négative est ramenée à 0")
     void clampsNegativeScore() {
-        assertEquals(0, parse("{\"score\": -3}").score());
+        assertEquals(0, parse("{\"score\": -3, \"summary\": \"note negative\"}").score());
     }
 
     @Test
     @DisplayName("un signalement citant un fichier absent du projet est écarté")
     void dropsFindingOnUnknownFile() {
         CriterionResult result = parse("""
-                {"score": 5, "findings": [
+                {"score": 5, "summary": "fixture de test", "findings": [
                   {"file": "src/inexistant/B.java", "title": "faux", "confidence": 0.9}
                 ]}
                 """);
@@ -193,7 +201,7 @@ class JsonCriterionResponseParserTest {
     @DisplayName("une confiance de 1.7 est ramenée à 1.0")
     void clampsConfidence() {
         CriterionResult result = parse("""
-                {"score": 5, "findings": [
+                {"score": 5, "summary": "fixture de test", "findings": [
                   {"file": "%s", "title": "problème", "confidence": 1.7}
                 ]}
                 """.formatted(EXISTING));
@@ -206,7 +214,7 @@ class JsonCriterionResponseParserTest {
     @DisplayName("un signalement sans titre est ignoré, sans valeur inventée")
     void dropsFindingWithoutTitle() {
         CriterionResult result = parse("""
-                {"score": 5, "findings": [
+                {"score": 5, "summary": "fixture de test", "findings": [
                   {"file": "%s", "confidence": 0.9}
                 ]}
                 """.formatted(EXISTING));
@@ -219,7 +227,7 @@ class JsonCriterionResponseParserTest {
     void truncatesHugeExplanation() {
         String huge = "x".repeat(50_000);
         CriterionResult result = parse("""
-                {"score": 5, "findings": [
+                {"score": 5, "summary": "fixture de test", "findings": [
                   {"file": "%s", "title": "fuite", "explanation": "%s", "confidence": 0.5}
                 ]}
                 """.formatted(EXISTING, huge));
@@ -237,7 +245,7 @@ class JsonCriterionResponseParserTest {
         for (int i = 0; i < 20; i++) {
             entries.append(i == 0 ? "" : ",").append("\"point ").append(i).append('"');
         }
-        CriterionResult result = parse("{\"score\": 5, \"strengths\": [" + entries + "]}");
+        CriterionResult result = parse("{\"score\": 5, \"summary\": \"fixture de test\", \"strengths\": [" + entries + "]}");
 
         assertEquals(JsonCriterionResponseParser.MAX_ITEMS_PER_LIST, result.strengths().size());
     }
@@ -246,7 +254,7 @@ class JsonCriterionResponseParserTest {
     @DisplayName("les entrées vides d'une liste sont ignorées")
     void ignoresEmptyListEntries() {
         CriterionResult result = parse("""
-                {"score": 5, "strengths": ["  ", "vrai point", ""]}
+                {"score": 5, "summary": "fixture de test", "strengths": ["  ", "vrai point", ""]}
                 """);
 
         assertEquals(List.of("vrai point"), result.strengths());

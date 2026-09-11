@@ -98,9 +98,11 @@ public final class JsonCriterionResponseParser implements CriterionResponseParse
      * rend une chaîne vide : le critère est alors noté <b>0 sur 10 et marqué comme évalué</b>,
      * ce qui fait passer un échec pour un jugement et contamine la note globale.
      *
-     * <p>On exige le seul champ sans lequel il n'y a pas d'évaluation du tout : la note. Le
-     * résumé et les listes restent facultatifs — ne rien trouver à redire est une réponse
-     * légitime, alors que ne pas se prononcer n'en est pas une.
+     * <p>On exige la note <b>et</b> son résumé. Les listes restent facultatives : ne rien
+     * trouver à redire est une réponse légitime, alors que noter sans rien dire n'en est pas
+     * une. Relevé sur {@code qwen2.5-coder:1.5b}, qui renvoie {@code {"score": 10}} et rien
+     * d'autre — un 10 sur 10 sans une phrase n'est pas un jugement, et il fait monter la note
+     * globale au même titre qu'un vrai.
      *
      * <p>Le contrôle porte sur la <b>présence</b> du champ et sur son type, jamais sur sa
      * valeur : un 0 sur 10 argumenté est un verdict recevable et doit continuer de passer.
@@ -115,6 +117,9 @@ public final class JsonCriterionResponseParser implements CriterionResponseParse
         }
         if (!root.path("score").isNumber()) {
             throw new InvalidResponseException("réponse hors schéma : note non numérique");
+        }
+        if (root.path("summary").asText("").isBlank()) {
+            throw new InvalidResponseException("réponse hors schéma : note sans justification");
         }
     }
 
