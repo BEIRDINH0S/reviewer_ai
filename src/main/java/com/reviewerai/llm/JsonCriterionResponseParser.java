@@ -62,6 +62,7 @@ public final class JsonCriterionResponseParser implements CriterionResponseParse
      *       leur réponse de texte ou de barrières de code ;
      *   <li>lire l'arbre avec Jackson ; toute exception devient une
      *       {@link InvalidResponseException}, jamais une remontée telle quelle ;
+     *   <li>vérifier que le modèle s'est réellement prononcé — voir {@link #requireVerdict} ;
      *   <li>note : la ramener dans {@code [0, descriptor.maxScore()]} — le {@code maxScore}
      *       renvoyé par le modèle est ignoré, celui du descripteur fait foi ;
      *   <li>listes de texte : entrées vides ignorées, textes trop longs tronqués, au plus
@@ -73,6 +74,7 @@ public final class JsonCriterionResponseParser implements CriterionResponseParse
     @Override
     public CriterionResult parse(String rawResponse, CriterionDescriptor descriptor, ProjectSnapshot project) {
         JsonNode root = readTree(extractFirstJsonObject(rawResponse));
+        requireVerdict(root);
         return new CriterionResult(
                 descriptor.id(),
                 descriptor.label(),
@@ -84,6 +86,41 @@ public final class JsonCriterionResponseParser implements CriterionResponseParse
                 textList(root.path("recommendations")),
                 findings(root.path("findings"), project),
                 true);
+    }
+
+    /**
+     * Vérifie que la réponse porte bien un verdict, et pas seulement du JSON bien formé.
+     *
+     * <p>Un petit modèle produit volontiers un objet valide dans un schéma qu'il a inventé —
+     * relevé sur {@code qwen2.5-coder:1.5b} :
+     * {@code {"criteria":[{"name":"…","weight":10,"notes":"…","feedback":"…"}]}}. Sans ce
+     * contrôle, {@code path("score").asInt(0)} rend 0 et {@code path("summary").asText("")}
+     * rend une chaîne vide : le critère est alors noté <b>0 sur 10 et marqué comme évalué</b>,
+     * ce qui fait passer un échec pour un jugement et contamine la note globale.
+     *
+     * <p>On exige la note <b>et</b> son résumé. Les listes restent facultatives : ne rien
+     * trouver à redire est une réponse légitime, alors que noter sans rien dire n'en est pas
+     * une. Relevé sur {@code qwen2.5-coder:1.5b}, qui renvoie {@code {"score": 10}} et rien
+     * d'autre — un 10 sur 10 sans une phrase n'est pas un jugement, et il fait monter la note
+     * globale au même titre qu'un vrai.
+     *
+     * <p>Le contrôle porte sur la <b>présence</b> du champ et sur son type, jamais sur sa
+     * valeur : un 0 sur 10 argumenté est un verdict recevable et doit continuer de passer.
+     * C'est aussi pourquoi une note textuelle est refusée plutôt que convertie — {@code asInt}
+     * rendrait 0 sur {@code "sept"}, soit exactement la fausse note qu'on cherche à empêcher.
+     *
+     * @throws InvalidResponseException si la réponse ne contient pas de verdict exploitable
+     */
+    private static void requireVerdict(JsonNode root) {
+        if (!root.hasNonNull("score")) {
+            throw new InvalidResponseException("réponse hors schéma : aucune note");
+        }
+        if (!root.path("score").isNumber()) {
+            throw new InvalidResponseException("réponse hors schéma : note non numérique");
+        }
+        if (root.path("summary").asText("").isBlank()) {
+            throw new InvalidResponseException("réponse hors schéma : note sans justification");
+        }
     }
 
     /**
