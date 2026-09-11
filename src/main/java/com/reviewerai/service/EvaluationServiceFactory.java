@@ -1,6 +1,7 @@
 package com.reviewerai.service;
 
 import com.reviewerai.config.EvaluationConfig;
+import com.reviewerai.context.CallGraphContextBuilder;
 import com.reviewerai.context.ContextBuilder;
 import com.reviewerai.context.RepresentativeFileContextBuilder;
 import com.reviewerai.criteria.ArchitectureCriterion;
@@ -15,6 +16,7 @@ import com.reviewerai.criteria.ReadabilityCriterion;
 import com.reviewerai.criteria.SecurityCriterion;
 import com.reviewerai.criteria.SolidCriterion;
 import com.reviewerai.criteria.TestPresenceCriterion;
+import com.reviewerai.graph.JavaParserGraphBuilder;
 import com.reviewerai.history.AnalysisHistory;
 import com.reviewerai.history.JsonFileAnalysisHistory;
 import com.reviewerai.llm.CountingLlmProvider;
@@ -116,7 +118,12 @@ public final class EvaluationServiceFactory {
                                            Consumer<String> journal,
                                            AnalysisHistory history) {
         CountingLlmProvider counting = llmProvider(config, provider, journal);
-        ContextBuilder contextBuilder = new RepresentativeFileContextBuilder(config);
+        ContextBuilder fileContext = new RepresentativeFileContextBuilder(config);
+        // Une seule instance pour les trois critères qui l'utilisent : elle mémorise le graphe,
+        // et trois instances parcourraient le repo trois fois. Le repli lui est passé plutôt
+        // que testé ici : un projet sans source Java dégrade alors tout seul.
+        ContextBuilder graphContext = new CallGraphContextBuilder(
+                config, new JavaParserGraphBuilder(config), fileContext);
         CriterionResponseParser parser = new JsonCriterionResponseParser();
         FindingVerifier verifier = findingVerifier(config);
 
@@ -124,7 +131,7 @@ public final class EvaluationServiceFactory {
                 config,
                 ProjectLoaderFactory.withMaxFileSize(config.maxFileSizeBytes()),
                 fileSelector(config),
-                criterionRegistry(contextBuilder, counting, parser, verifier, config),
+                criterionRegistry(fileContext, graphContext, counting, parser, verifier, config),
                 Objects.requireNonNull(history, "history"),
                 counting);
     }
@@ -165,8 +172,16 @@ public final class EvaluationServiceFactory {
      *
      * <p><b>Ajouter un critère</b> : écrire la classe, ajouter une ligne ici. Rien d'autre ne
      * change — ni le moteur, ni le rapport, ni les vues, ni l'historique.
+     *
+     * <p>Les six critères confiés au modèle ne reçoivent pas tous le même contexte. Ceux qui
+     * jugent des <b>relations</b> entre classes — architecture, SOLID, patrons — reçoivent le
+     * contexte par graphe d'appel : une méthode centrale entourée de ses appelants et de ses
+     * appelées dit quelque chose du couplage, là où des fichiers sans lien entre eux ne
+     * disent rien. Les trois autres — lisibilité, gestion des erreurs, sécurité — jugent du
+     * code tel qu'il se lit, et un fichier entier leur est plus utile qu'une méthode isolée.
      */
-    private static CriterionRegistry criterionRegistry(ContextBuilder contextBuilder,
+    private static CriterionRegistry criterionRegistry(ContextBuilder fileContext,
+                                                       ContextBuilder graphContext,
                                                        LlmProvider llm,
                                                        CriterionResponseParser parser,
                                                        FindingVerifier verifier,
@@ -177,12 +192,12 @@ public final class EvaluationServiceFactory {
                 new TestPresenceCriterion(),
                 new DocumentationCriterion(),
                 new DuplicationCriterion(config.maxFileSizeBytes()),
-                new ArchitectureCriterion(contextBuilder, llm, parser, verifier, tokens),
-                new ReadabilityCriterion(contextBuilder, llm, parser, verifier, tokens),
-                new SolidCriterion(contextBuilder, llm, parser, verifier, tokens),
-                new DesignPatternCriterion(contextBuilder, llm, parser, verifier, tokens),
-                new ErrorHandlingCriterion(contextBuilder, llm, parser, verifier, tokens),
-                new SecurityCriterion(contextBuilder, llm, parser, verifier, tokens));
+                new ArchitectureCriterion(graphContext, llm, parser, verifier, tokens),
+                new ReadabilityCriterion(fileContext, llm, parser, verifier, tokens),
+                new SolidCriterion(graphContext, llm, parser, verifier, tokens),
+                new DesignPatternCriterion(graphContext, llm, parser, verifier, tokens),
+                new ErrorHandlingCriterion(fileContext, llm, parser, verifier, tokens),
+                new SecurityCriterion(fileContext, llm, parser, verifier, tokens));
         return new CriterionRegistry(criteria);
     }
 
