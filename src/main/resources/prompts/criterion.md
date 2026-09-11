@@ -11,9 +11,13 @@ Note maximale : {{maxScore}}
 
 {{inventory}}
 
-Tu ne vois ci-dessous qu'une sélection d'extraits, choisie pour ce critère. L'inventaire
-ci-dessus te dit quelle proportion du projet cela représente : tiens-en compte dans ta note et
-dans ta confiance.
+## Ce que tu vois du projet
+
+{{coverage}}
+
+Tu ne vois qu'une sélection d'extraits, choisie pour ce critère. Tiens-en compte : note ce que
+tu peux vérifier, baisse ta confiance sur le reste, et dis-le dans ton appréciation si la
+sélection ne suffit pas à juger.
 
 ## Extraits
 
