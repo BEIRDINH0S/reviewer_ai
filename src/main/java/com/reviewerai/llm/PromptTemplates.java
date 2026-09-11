@@ -65,7 +65,24 @@ public final class PromptTemplates {
                 .replace("{{guidance}}", descriptor.guidance())
                 .replace("{{project}}", context.project().describe())
                 .replace("{{inventory}}", context.inventory())
+                .replace("{{coverage}}", renderCoverage(context))
                 .replace("{{excerpts}}", renderExcerpts(context));
+    }
+
+    /**
+     * Dit au modèle, en chiffres, sur quelle part du projet il se prononce.
+     *
+     * <p>Le prompt lui demande de tenir compte de ce qu'il ne voit pas ; encore faut-il le lui
+     * dire. Sans dénominateur, « tiens-en compte dans ta confiance » est une consigne creuse.
+     */
+    private static String renderCoverage(EvaluationContext context) {
+        if (context.isEmpty()) {
+            return "Aucun extrait n'a pu être retenu pour ce critère.";
+        }
+        long files = context.excerpts().stream().map(CodeExcerpt::filePath).distinct().count();
+        return "Extraits retenus : " + context.excerpts().size()
+                + ", tirés de " + files + " fichier(s) du projet."
+                + " Budget de lecture utilisé : " + context.estimatedTokens() + " jetons.";
     }
 
     /**
